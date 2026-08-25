@@ -1,0 +1,25 @@
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Config
+.env
+.env.local
+config.local.*
+
+# Audit output artifiacts
+reports/
+output/
+screenshots/
+*.har
+crawl-cache/
