@@ -23,3 +23,6 @@ output/
 screenshots/
 *.har
 crawl-cache/
+
+# Logs
+*.log
