@@ -17,8 +17,7 @@ venv/
 .env.local
 config.local.*
 
-# Audit output artifiacts
-reports/
+# Audit output artifacts (generated reports — not the reports/ source folder)
 output/
 screenshots/
 *.har

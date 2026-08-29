@@ -2,9 +2,10 @@
   "name": "auditme",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "audit.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test tests/",
+    "audit": "node audit.js"
   },
   "keywords": [],
   "author": "",

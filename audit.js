@@ -1,13 +1,33 @@
-const { chromium } = require('playwright'); 
-(async () => { const browser = await chromium.launch(); 
-    const page = await browser.newPage();  
-    
-    page.on('response', response => {
-        console.log('Response:', response.status(), 'URL:', response.url())
-    })
-    page.on('error', error => {
-        console.log('Error:', error)
-    })
-    await page.goto(process.argv[2]);
-    const title = await page.title(); console.log('Page title:', title); 
-    await browser.close(); })();
+const { chromium } = require('playwright');
+const { runAllChecks, collectFindings } = require('./checks');
+const { formatJson } = require('./reports');
+
+async function main() {
+  const url = process.argv[2];
+
+  if (!url) {
+    console.error('Usage: node audit.js <url>');
+    process.exit(1);
+  }
+
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+
+  // Register listeners before navigation so nothing is missed
+  await runAllChecks(page);
+  await page.goto(url);
+
+  const result = {
+    url,
+    findings: collectFindings(),
+  };
+
+  console.log(formatJson(result));
+
+  await browser.close();
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
