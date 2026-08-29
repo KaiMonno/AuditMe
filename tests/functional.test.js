@@ -1,13 +1,76 @@
-const { describe, test } = require('node:test');
+const { describe, test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
+const { chromium } = require('playwright');
 const { functional, resetAll } = require('../checks');
+const { startLocalServer } = require('./helpers/localServer');
 
 describe('functional checks', () => {
-  test('getFindings returns an empty array before checks are implemented', () => {
+  let browser;
+  let server;
+
+  before(async () => {
+    browser = await chromium.launch();
+    server = await startLocalServer();
+  });
+
+  after(async () => {
+    await browser.close();
+    await server.close();
+  });
+
+  beforeEach(() => {
     resetAll();
+  });
+
+  test('getFindings starts empty after reset', () => {
     assert.deepEqual(functional.getFindings(), []);
   });
 
-  test.todo('flags HTTP responses with status >= 400');
-  test.todo('flags uncaught JS errors via page.on("pageerror")');
+  test('flags the main document when status is 500', async () => {
+    const page = await browser.newPage();
+    await functional.setup(page);
+    await page.goto(`${server.url}/500`);
+
+    const httpFindings = functional
+      .getFindings()
+      .filter((f) => f.rule === 'http-error-response');
+
+    assert.equal(httpFindings.length, 1);
+    assert.equal(httpFindings[0].category, 'functional');
+    assert.equal(httpFindings[0].severity, 'error');
+    assert.match(httpFindings[0].message, /HTTP 500/);
+    assert.equal(httpFindings[0].url, `${server.url}/500`);
+
+    await page.close();
+  });
+
+  test('does not flag a 200 document response', async () => {
+    const page = await browser.newPage();
+    await functional.setup(page);
+    await page.goto(`${server.url}/ok`);
+
+    const httpFindings = functional
+      .getFindings()
+      .filter((f) => f.rule === 'http-error-response');
+
+    assert.equal(httpFindings.length, 0);
+    await page.close();
+  });
+
+  test('flags uncaught JS errors via pageerror', async () => {
+    const page = await browser.newPage();
+    await functional.setup(page);
+    await page.goto(`${server.url}/js-error`);
+
+    const jsFindings = functional
+      .getFindings()
+      .filter((f) => f.rule === 'uncaught-js-error');
+
+    assert.equal(jsFindings.length, 1);
+    assert.equal(jsFindings[0].category, 'functional');
+    assert.equal(jsFindings[0].severity, 'error');
+    assert.match(jsFindings[0].message, /intentional uncaught error/);
+
+    await page.close();
+  });
 });
