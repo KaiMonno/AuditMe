@@ -56,4 +56,7 @@ function reset() {
   findings.length = 0;
 }
 
-module.exports = { setup, getFindings, reset };
+/** No post-load work — functional findings come from events during navigation. */
+async function run(_page) {}
+
+module.exports = { setup, run, getFindings, reset };

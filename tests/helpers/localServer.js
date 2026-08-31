@@ -10,6 +10,7 @@ const FIXTURES = path.join(__dirname, '..', 'fixtures');
  *   GET /ok          200 + ok.html
  *   GET /500         500
  *   GET /js-error    200 + js-error.html
+ *   GET /fixtures/*  200 + matching file in tests/fixtures
  *   anything else    404
  *
  * @returns {Promise<{ url: string, close: () => Promise<void> }>}
@@ -34,6 +35,17 @@ function startLocalServer() {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
       res.end(fs.readFileSync(path.join(FIXTURES, 'js-error.html')));
       return;
+    }
+
+    // Serve any file from tests/fixtures by basename, e.g. /fixtures/ok.html
+    if (url.startsWith('/fixtures/')) {
+      const name = path.basename(url);
+      const file = path.join(FIXTURES, name);
+      if (name && fs.existsSync(file)) {
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+        res.end(fs.readFileSync(file));
+        return;
+      }
     }
 
     res.writeHead(404, { 'content-type': 'text/plain' });

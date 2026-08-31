@@ -1,16 +1,24 @@
 {
   "name": "auditme",
   "version": "1.0.0",
-  "description": "",
+  "description": "CLI that audits websites for functional, metadata/SEO, and accessibility issues",
   "main": "audit.js",
+  "bin": {
+    "auditme": "audit.js"
+  },
   "scripts": {
     "test": "node --test tests/",
     "audit": "node audit.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["audit", "playwright", "accessibility", "seo", "qa"],
+  "author": "KaiMonno",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "commander": "^13.1.0",
     "playwright": "^1.62.1"
   }
 }

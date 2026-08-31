@@ -27,7 +27,8 @@ describe('functional checks', () => {
   });
 
   test('flags the main document when status is 500', async () => {
-    const page = await browser.newPage();
+    const context = await browser.newContext();
+    const page = await context.newPage();
     await functional.setup(page);
     await page.goto(`${server.url}/500`);
 
@@ -45,7 +46,8 @@ describe('functional checks', () => {
   });
 
   test('does not flag a 200 document response', async () => {
-    const page = await browser.newPage();
+    const context = await browser.newContext();
+    const page = await context.newPage();
     await functional.setup(page);
     await page.goto(`${server.url}/ok`);
 
@@ -58,7 +60,8 @@ describe('functional checks', () => {
   });
 
   test('flags uncaught JS errors via pageerror', async () => {
-    const page = await browser.newPage();
+    const context = await browser.newContext();
+    const page = await context.newPage();
     await functional.setup(page);
     await page.goto(`${server.url}/js-error`);
 
