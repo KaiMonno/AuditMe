@@ -13,6 +13,51 @@ function SummaryBar({ summary }) {
   );
 }
 
+function AiSummaryPanel({ result }) {
+  const [status, setStatus] = useState('idle'); // idle | loading | error | done
+  const [summary, setSummary] = useState(null);
+  const [error, setError] = useState(null);
+
+  async function handleClick() {
+    setStatus('loading');
+    setError(null);
+
+    try {
+      const res = await fetch('/api/summary', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ result }),
+      });
+      const body = await res.json();
+
+      if (!res.ok) {
+        setError(body.error || `Request failed with status ${res.status}`);
+        setStatus('error');
+        return;
+      }
+
+      setSummary(body.summary);
+      setStatus('done');
+    } catch (err) {
+      setError(err.message);
+      setStatus('error');
+    }
+  }
+
+  return (
+    <div className="ai-summary">
+      {status === 'idle' && (
+        <button type="button" className="summarize-button" onClick={handleClick}>
+          Summarize with AI
+        </button>
+      )}
+      {status === 'loading' && <p className="ai-summary-loading">Generating summary…</p>}
+      {status === 'error' && <p className="error-banner">{error}</p>}
+      {status === 'done' && <p className="ai-summary-text">{summary}</p>}
+    </div>
+  );
+}
+
 function FindingsTable({ findings }) {
   if (findings.length === 0) {
     return <p className="empty-state">No findings — clean audit.</p>;
@@ -119,6 +164,7 @@ export default function App() {
             {result.url} <span className="audited-at">audited {result.auditedAt}</span>
           </p>
           <SummaryBar summary={result.summary} />
+          <AiSummaryPanel key={result.auditedAt} result={result} />
           <FindingsTable findings={result.findings} />
         </section>
       )}

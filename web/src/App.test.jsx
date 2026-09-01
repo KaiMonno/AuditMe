@@ -157,4 +157,71 @@ describe('App', () => {
 
     await waitFor(() => expect(screen.getByText('Failed to fetch')).toBeInTheDocument());
   });
+
+  describe('AI summary', () => {
+    const AUDIT_RESULT = {
+      url: 'https://example.com/',
+      auditedAt: '2026-01-01T00:00:00.000Z',
+      summary: { error: 1, warning: 0, info: 0, total: 1 },
+      findings: [
+        {
+          category: 'functional',
+          rule: 'http-error-response',
+          severity: 'error',
+          message: 'HTTP 500',
+          url: 'https://example.com/',
+        },
+      ],
+    };
+
+    async function runAuditAndFindSummarizeButton(user) {
+      global.fetch.mockImplementation((url) => {
+        if (url === '/api/audits') return Promise.resolve(jsonResponse(200, AUDIT_RESULT));
+        throw new Error(`unexpected fetch to ${url}`);
+      });
+
+      render(<App />);
+      await user.type(screen.getByPlaceholderText('https://example.com'), 'https://example.com');
+      await user.click(screen.getByRole('button', { name: 'Run audit' }));
+
+      return screen.findByRole('button', { name: 'Summarize with AI' });
+    }
+
+    it('requests and displays a summary on click', async () => {
+      const user = userEvent.setup();
+      global.fetch.mockImplementation((url) => {
+        if (url === '/api/audits') return Promise.resolve(jsonResponse(200, AUDIT_RESULT));
+        if (url === '/api/summary')
+          return Promise.resolve(jsonResponse(200, { summary: 'Fix the 500 error first.' }));
+        throw new Error(`unexpected fetch to ${url}`);
+      });
+
+      render(<App />);
+      await user.type(screen.getByPlaceholderText('https://example.com'), 'https://example.com');
+      await user.click(screen.getByRole('button', { name: 'Run audit' }));
+
+      const summarizeButton = await screen.findByRole('button', { name: 'Summarize with AI' });
+      await user.click(summarizeButton);
+
+      await waitFor(() => expect(screen.getByText('Fix the 500 error first.')).toBeInTheDocument());
+
+      const [, options] = global.fetch.mock.calls.find(([url]) => url === '/api/summary');
+      expect(JSON.parse(options.body)).toEqual({ result: AUDIT_RESULT });
+    });
+
+    it('shows an error message when the summary request fails', async () => {
+      const user = userEvent.setup();
+      const summarizeButton = await runAuditAndFindSummarizeButton(user);
+
+      global.fetch.mockImplementation((url) => {
+        if (url === '/api/summary')
+          return Promise.resolve(jsonResponse(502, { error: 'upstream unavailable' }));
+        throw new Error(`unexpected fetch to ${url}`);
+      });
+
+      await user.click(summarizeButton);
+
+      await waitFor(() => expect(screen.getByText('upstream unavailable')).toBeInTheDocument());
+    });
+  });
 });

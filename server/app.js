@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('node:path');
 const fs = require('node:fs');
 const auditsRouter = require('./routes/audits');
+const summaryRouter = require('./routes/summary');
 
 const WEB_DIST = path.join(__dirname, '..', 'web', 'dist');
 
@@ -19,6 +20,7 @@ function createApp() {
   });
 
   app.use('/api', auditsRouter);
+  app.use('/api', summaryRouter);
 
   // Serve the built React app if it exists (`npm run build` in web/), so
   // `node server/index.js` alone can serve the whole demo on one port.

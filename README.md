@@ -33,6 +33,10 @@ The same `runAudit()` engine is wrapped in a small Express API, with a React (Vi
 npm install
 npx playwright install chromium
 npm --prefix web install
+
+cp .env.example .env
+# edit .env and set a real GEMINI_API_KEY if you want the AI summary
+# feature to work — everything else runs fine without it
 ```
 
 **Dev mode** (frontend hot-reloads, proxies API calls to the backend):
@@ -55,20 +59,28 @@ npm run server   # http://localhost:3001 serves the built UI + API
 | --- | --- |
 | `GET /api/health` | Liveness check |
 | `POST /api/audits` | Body: `{ "url": "...", "browser"?: "chromium"\|"firefox"\|"webkit", "timeout"?: ms }`. Returns the same result shape as the CLI's JSON output. `400` for a missing/malformed `url` or unsupported protocol/browser, `502` if the audit itself fails (bad host, navigation timeout, etc). |
+| `POST /api/summary` | Body: `{ "result": <an audit result from POST /api/audits> }`. Asks Gemini for a short, prioritized, plain-English summary of the findings. Always `200` — `{ "summary": "..." }` either way, even on failure (a missing `GEMINI_API_KEY`, a Gemini API error) the `summary` field just explains what went wrong, so a flaky/unconfigured LLM call never breaks the audit flow. `400` only for a missing/malformed `result`. |
 
-Only `http`/`https` URLs are accepted. This is a basic input guard, not full SSRF protection — it doesn't block private/internal IP ranges. Fine for local use; would need hardening before ever being exposed publicly.
+Only `http`/`https` URLs are accepted for `/api/audits`. This is a basic input guard, not full SSRF protection — it doesn't block private/internal IP ranges. Fine for local use; would need hardening before ever being exposed publicly.
+
+### AI summary
+
+`lib/llmSummary.js` calls Gemini's REST API directly (no SDK dependency — Node's built-in `fetch` is enough). Separate, on-demand endpoint rather than something every audit triggers automatically: keeps `POST /api/audits` fast/deterministic and avoids spending API quota when nobody asked for a summary. In the UI, a "Summarize with AI" button appears once audit results are in.
+
+Without a `GEMINI_API_KEY` configured, `/api/summary` still responds `200` with a `summary` string explaining that the LLM summary is unavailable — the rest of the app works normally either way.
 
 ## Project structure
 
 ```
 audit.js              CLI entrypoint (commander)
 lib/runner.js         Browser launch + check orchestration
+lib/llmSummary.js     Gemini-powered plain-English summary of a result
 checks/               One module per check category
   functional.js       HTTP >= 400, uncaught JS errors
   metadata.js          Title, description, canonical, OG, img alt
   accessibility.js    @axe-core/playwright
 reports/              JSON + HTML formatters
-server/               Express API wrapping lib/runner.js
+server/               Express API wrapping lib/runner.js and lib/llmSummary.js
 web/                  React (Vite) frontend
 tests/                Node test runner + HTML fixtures
 .github/workflows/    CI
