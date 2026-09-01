@@ -23,5 +23,8 @@ screenshots/
 *.har
 crawl-cache/
 
+# Frontend build output (npm run build --prefix web)
+web/dist/
+
 # Logs
 *.log

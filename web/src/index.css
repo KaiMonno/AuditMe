@@ -1,0 +1,158 @@
+:root {
+  color-scheme: light;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f6f7f9;
+  color: #1a1a1a;
+}
+
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.subtitle {
+  color: #555;
+  margin-top: 0.25rem;
+}
+
+.audit-form {
+  display: flex;
+  gap: 0.5rem;
+  margin: 2rem 0;
+}
+
+.audit-form input {
+  flex: 1;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.audit-form select {
+  padding: 0.6rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  background: white;
+}
+
+.audit-form button {
+  padding: 0.6rem 1.25rem;
+  border: none;
+  border-radius: 6px;
+  background: #1a1a1a;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.audit-form button:disabled {
+  background: #999;
+  cursor: not-allowed;
+}
+
+.error-banner {
+  background: #fdecea;
+  border: 1px solid #f5b5ae;
+  color: #7a1f16;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+}
+
+.audited-url {
+  color: #333;
+  word-break: break-all;
+}
+
+.audited-at {
+  color: #888;
+  font-size: 0.85rem;
+}
+
+.summary {
+  display: flex;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  flex-wrap: wrap;
+}
+
+.summary-item {
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.summary-item.total {
+  background: #eaeaea;
+  color: #333;
+}
+
+.summary-item.error {
+  background: #fdecea;
+  color: #b3261e;
+}
+
+.summary-item.warning {
+  background: #fff4d6;
+  color: #8a6100;
+}
+
+.summary-item.info {
+  background: #e8f4fd;
+  color: #0b5faa;
+}
+
+.empty-state {
+  color: #555;
+}
+
+.findings {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.findings th,
+.findings td {
+  border: 1px solid #e2e2e2;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+  font-size: 0.9rem;
+}
+
+.findings th {
+  background: #f0f0f0;
+}
+
+.findings tr.error {
+  background: #fdecea;
+}
+
+.findings tr.warning {
+  background: #fff8e1;
+}
+
+.findings tr.info {
+  background: #e8f4fd;
+}
+
+.findings .url-cell {
+  max-width: 320px;
+  word-break: break-all;
+}

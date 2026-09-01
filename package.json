@@ -8,9 +8,17 @@
   },
   "scripts": {
     "test": "node --test",
-    "audit": "node audit.js"
+    "audit": "node audit.js",
+    "server": "node server/index.js",
+    "build": "npm --prefix web run build"
   },
-  "keywords": ["audit", "playwright", "accessibility", "seo", "qa"],
+  "keywords": [
+    "audit",
+    "playwright",
+    "accessibility",
+    "seo",
+    "qa"
+  ],
   "author": "KaiMonno",
   "license": "MIT",
   "engines": {
@@ -19,6 +27,7 @@
   "dependencies": {
     "@axe-core/playwright": "^4.10.2",
     "commander": "^13.1.0",
+    "express": "^5.2.1",
     "playwright": "^1.62.1"
   }
 }
