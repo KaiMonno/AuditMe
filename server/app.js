@@ -14,11 +14,17 @@ const WEB_DIST = path.join(__dirname, '..', 'web', 'dist');
 function createApp() {
   const app = express();
 
-  // Render/Railway (and most hosts) sit behind a reverse proxy — trust the
-  // first hop so express-rate-limit reads the real client IP from
-  // X-Forwarded-For instead of bucketing every visitor under the proxy's
-  // single IP.
-  app.set('trust proxy', 1);
+  // Render sits behind Cloudflare, so there are at least 2 proxy hops
+  // between a client and this app (verified in production: the response
+  // carries `server: cloudflare`). Trusting a fixed hop count (e.g. `1`)
+  // picks the wrong X-Forwarded-For entry depending on which edge node
+  // routes a given request, which in production caused express-rate-limit
+  // to key requests from the same client into different buckets almost at
+  // random (RateLimit-Remaining jumped 7 -> 6 -> 12 across three
+  // consecutive requests) — effectively no real throttling. Trusting the
+  // whole chain (`true`) takes the left-most entry, the original client,
+  // correctly regardless of how many hops are actually in front of it.
+  app.set('trust proxy', true);
 
   app.use(express.json());
 
