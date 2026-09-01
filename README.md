@@ -2,6 +2,8 @@
 
 Node.js + Playwright tool that audits a URL for functional, metadata/SEO, and accessibility issues. Ships two ways to use it: a CLI, and a small web app (Express API + React frontend) that wraps the same audit engine.
 
+**Live:** [auditme.onrender.com](https://auditme.onrender.com) — free-tier hosting, so it spins down after 15 minutes idle and the first request after that can take 30-60s to wake back up. Public endpoints are rate-limited (20 requests / 15 min per IP on `/api/audits` and `/api/summary`) — see [API](#api) below.
+
 ## CLI usage
 
 ```bash
@@ -27,7 +29,7 @@ Exit code is `1` when any finding has severity `error` (usable as a CI gate).
 
 ## Web app usage
 
-The same `runAudit()` engine is wrapped in a small Express API, with a React (Vite) frontend to drive it from a browser instead of the CLI. It's a local-only demo — nothing is deployed.
+The same `runAudit()` engine is wrapped in a small Express API, with a React (Vite) frontend to drive it from a browser instead of the CLI. Live at [auditme.onrender.com](https://auditme.onrender.com) — see the note at the top of this README on cold starts and rate limits. To run it locally instead:
 
 ```bash
 npm install
@@ -61,7 +63,9 @@ npm run server   # http://localhost:3001 serves the built UI + API
 | `POST /api/audits` | Body: `{ "url": "...", "browser"?: "chromium"\|"firefox"\|"webkit", "timeout"?: ms }`. Returns the same result shape as the CLI's JSON output. `400` for a missing/malformed `url` or unsupported protocol/browser, `502` if the audit itself fails (bad host, navigation timeout, etc). |
 | `POST /api/summary` | Body: `{ "result": <an audit result from POST /api/audits> }`. Asks Gemini for a short, prioritized, plain-English summary of the findings. Always `200` — `{ "summary": "..." }` either way, even on failure (a missing `GEMINI_API_KEY`, a Gemini API error) the `summary` field just explains what went wrong, so a flaky/unconfigured LLM call never breaks the audit flow. `400` only for a missing/malformed `result`. |
 
-Only `http`/`https` URLs are accepted for `/api/audits`. This is a basic input guard, not full SSRF protection — it doesn't block private/internal IP ranges. Fine for local use; would need hardening before ever being exposed publicly.
+Only `http`/`https` URLs are accepted for `/api/audits`. This is a basic input guard, not full SSRF protection — it doesn't block private/internal IP ranges. Known limitation for the public deployment, not something to work around casually.
+
+`/api/audits` and `/api/summary` are rate-limited to 20 requests / 15 minutes per IP (`429` past that, with standard `RateLimit-*` response headers) — the two routes that spend real compute or API quota, not `/api/health`. This is a basic abuse guard for a public demo, not hardened protection.
 
 ### AI summary
 
@@ -84,6 +88,7 @@ server/               Express API wrapping lib/runner.js and lib/llmSummary.js
 web/                  React (Vite) frontend
 tests/                Node test runner + HTML fixtures
 .github/workflows/    CI
+Dockerfile             Container build for deployment (node:22-slim + Chromium)
 ```
 
 Generated files go to `output/` (gitignored), not the `reports/` source folder. `web/dist/` (the frontend build) is also gitignored — build it locally with `npm run build`.
