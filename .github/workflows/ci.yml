@@ -18,8 +18,13 @@ jobs:
           cache: npm
 
       - run: npm ci
+      - run: npm --prefix web ci
 
       # Playwright browsers are required for check module tests
       - run: npx playwright install --with-deps chromium
 
       - run: npm test
+
+      # Build-only check — no test suite for the frontend yet, but this
+      # catches anything that would break `npm run build` before it merges.
+      - run: npm --prefix web run build
