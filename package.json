@@ -7,7 +7,7 @@
     "auditme": "audit.js"
   },
   "scripts": {
-    "test": "node --test tests/",
+    "test": "node --test",
     "audit": "node audit.js"
   },
   "keywords": ["audit", "playwright", "accessibility", "seo", "qa"],
