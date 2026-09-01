@@ -1,0 +1,20 @@
+# Never let secrets or local-only state into the image. Docker does NOT
+# respect .gitignore — this file is the actual enforcement mechanism.
+.env
+.env.local
+
+.git
+node_modules
+web/node_modules
+web/dist
+
+output
+screenshots
+*.har
+crawl-cache
+*.log
+
+.claude
+.vscode
+.idea
+.DS_Store

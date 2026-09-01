@@ -137,4 +137,30 @@ describe('server', () => {
       assert.match(res.body.summary, /unavailable/);
     });
   });
+
+  describe('rate limiting', () => {
+    // The limiter is skipped when NODE_ENV=test (see server/app.js) so the
+    // rest of this suite's request volume is never constrained by it.
+    // Flip that off here specifically to prove the limiter itself works —
+    // send invalid bodies so each request 400s immediately (the limiter
+    // middleware runs before route validation, so it still counts these)
+    // rather than spending real Playwright/Gemini calls to prove a 429.
+    test('returns 429 after the per-IP limit is exceeded', async () => {
+      const originalNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+
+      try {
+        let lastStatus;
+        for (let i = 0; i < 21; i += 1) {
+          // eslint-disable-next-line no-await-in-loop
+          const res = await request(app).post('/api/audits').send({});
+          lastStatus = res.status;
+          if (lastStatus === 429) break;
+        }
+        assert.equal(lastStatus, 429);
+      } finally {
+        process.env.NODE_ENV = originalNodeEnv;
+      }
+    });
+  });
 });

@@ -7,7 +7,7 @@
     "auditme": "audit.js"
   },
   "scripts": {
-    "test": "node --test",
+    "test": "NODE_ENV=test node --test",
     "audit": "node audit.js",
     "server": "node server/index.js",
     "build": "npm --prefix web run build"
@@ -29,6 +29,7 @@
     "commander": "^13.1.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
     "playwright": "^1.62.1"
   },
   "devDependencies": {
