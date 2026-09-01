@@ -1,16 +1,14 @@
 /** @typedef {import('./types').Finding} Finding */
 
-/** @type {Finding[]} */
-const findings = [];
-
 /**
  * Register Playwright listeners for functional checks.
  * Must run before page.goto() — response/pageerror events that fire during
  * navigation would otherwise be missed.
  *
  * @param {import('playwright').Page} page
+ * @param {Finding[]} findings - shared collector for this audit run
  */
-async function setup(page) {
+async function setup(page, findings) {
   // 'response' fires for every HTTP response the page receives: the main
   // document and subresources (scripts, CSS, images, XHR/fetch). Status is
   // that specific response (redirect hops are separate 3xx events, so they
@@ -42,21 +40,7 @@ async function setup(page) {
   });
 }
 
-/**
- * @returns {Finding[]}
- */
-function getFindings() {
-  return findings;
-}
-
-/**
- * Reset state between runs (useful in tests).
- */
-function reset() {
-  findings.length = 0;
-}
-
 /** No post-load work — functional findings come from events during navigation. */
-async function run(_page) {}
+async function run(_page, _findings) {}
 
-module.exports = { setup, run, getFindings, reset };
+module.exports = { setup, run };

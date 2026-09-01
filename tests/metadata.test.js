@@ -1,7 +1,7 @@
-const { describe, test, before, after, beforeEach } = require('node:test');
+const { describe, test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
-const { metadata, resetAll } = require('../checks');
+const { metadata } = require('../checks');
 const { startLocalServer } = require('./helpers/localServer');
 
 describe('metadata checks', () => {
@@ -18,18 +18,15 @@ describe('metadata checks', () => {
     await server.close();
   });
 
-  beforeEach(() => {
-    resetAll();
-  });
-
   test('flags missing title, description, canonical, OG tags, and img alt', async () => {
     const context = await browser.newContext();
     const page = await context.newPage();
-    await metadata.setup(page);
+    const findings = [];
+    await metadata.setup(page, findings);
     await page.goto(`${server.url}/fixtures/metadata-missing.html`);
-    await metadata.run(page);
+    await metadata.run(page, findings);
 
-    const rules = metadata.getFindings().map((f) => f.rule);
+    const rules = findings.map((f) => f.rule);
     assert.ok(rules.includes('missing-title'));
     assert.ok(rules.includes('missing-meta-description'));
     assert.ok(rules.includes('missing-canonical'));
@@ -44,11 +41,12 @@ describe('metadata checks', () => {
   test('does not flag a page with complete metadata and alt text', async () => {
     const context = await browser.newContext();
     const page = await context.newPage();
-    await metadata.setup(page);
+    const findings = [];
+    await metadata.setup(page, findings);
     await page.goto(`${server.url}/fixtures/metadata-complete.html`);
-    await metadata.run(page);
+    await metadata.run(page, findings);
 
-    assert.deepEqual(metadata.getFindings(), []);
+    assert.deepEqual(findings, []);
     await page.close();
   });
 });

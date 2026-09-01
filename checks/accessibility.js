@@ -2,9 +2,6 @@ const { AxeBuilder } = require('@axe-core/playwright');
 
 /** @typedef {import('./types').Finding} Finding */
 
-/** @type {Finding[]} */
-const findings = [];
-
 const IMPACT_TO_SEVERITY = {
   critical: 'error',
   serious: 'error',
@@ -15,8 +12,9 @@ const IMPACT_TO_SEVERITY = {
 /**
  * Axe needs a loaded page; nothing to attach before navigation.
  * @param {import('playwright').Page} _page
+ * @param {Finding[]} _findings
  */
-async function setup(_page) {}
+async function setup(_page, _findings) {}
 
 /**
  * Run axe-core against the current page and map each failing node to a Finding.
@@ -26,8 +24,9 @@ async function setup(_page) {}
  * intentional — metadata is an SEO-oriented presence check; axe is WCAG.
  *
  * @param {import('playwright').Page} page
+ * @param {Finding[]} findings - shared collector for this audit run
  */
-async function run(page) {
+async function run(page, findings) {
   const results = await new AxeBuilder({ page }).analyze();
 
   for (const violation of results.violations) {
@@ -45,12 +44,4 @@ async function run(page) {
   }
 }
 
-function getFindings() {
-  return findings;
-}
-
-function reset() {
-  findings.length = 0;
-}
-
-module.exports = { setup, run, getFindings, reset };
+module.exports = { setup, run };

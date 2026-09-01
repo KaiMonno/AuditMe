@@ -9,10 +9,11 @@ const modules = [functional, metadata, accessibility];
  * Call this before page.goto().
  *
  * @param {import('playwright').Page} page
+ * @param {import('./types').Finding[]} findings - shared collector for this audit run
  */
-async function attachChecks(page) {
+async function attachChecks(page, findings) {
   for (const mod of modules) {
-    await mod.setup(page);
+    await mod.setup(page, findings);
   }
 }
 
@@ -21,43 +22,19 @@ async function attachChecks(page) {
  * Call this after page.goto().
  *
  * @param {import('playwright').Page} page
+ * @param {import('./types').Finding[]} findings - shared collector for this audit run
  */
-async function runPostLoadChecks(page) {
+async function runPostLoadChecks(page, findings) {
   for (const mod of modules) {
     if (typeof mod.run === 'function') {
-      await mod.run(page);
+      await mod.run(page, findings);
     }
-  }
-}
-
-/**
- * @deprecated Use attachChecks — kept so older call sites still work.
- */
-async function runAllChecks(page) {
-  return attachChecks(page);
-}
-
-/**
- * Gather findings from every check module.
- * @returns {import('./types').Finding[]}
- */
-function collectFindings() {
-  return modules.flatMap((mod) => mod.getFindings());
-}
-
-/** Reset all modules — primarily for unit tests and consecutive CLI runs. */
-function resetAll() {
-  for (const mod of modules) {
-    mod.reset();
   }
 }
 
 module.exports = {
   attachChecks,
   runPostLoadChecks,
-  runAllChecks,
-  collectFindings,
-  resetAll,
   functional,
   metadata,
   accessibility,

@@ -1,13 +1,10 @@
 /** @typedef {import('./types').Finding} Finding */
 
-/** @type {Finding[]} */
-const findings = [];
-
 function isBlank(value) {
   return value == null || String(value).trim() === '';
 }
 
-function add(rule, severity, message, url) {
+function add(findings, rule, severity, message, url) {
   /** @type {Finding} */
   const finding = { category: 'metadata', rule, severity, message };
   if (url) finding.url = url;
@@ -17,16 +14,18 @@ function add(rule, severity, message, url) {
 /**
  * Listeners are not needed for metadata — we snapshot the DOM after load.
  * @param {import('playwright').Page} _page
+ * @param {Finding[]} _findings
  */
-async function setup(_page) {}
+async function setup(_page, _findings) {}
 
 /**
  * Inspect title, description, canonical, Open Graph tags, and img alt text.
  * Uses one page.evaluate() round-trip so we read a consistent DOM snapshot.
  *
  * @param {import('playwright').Page} page
+ * @param {Finding[]} findings - shared collector for this audit run
  */
-async function run(page) {
+async function run(page, findings) {
   const snapshot = await page.evaluate(() => {
     const attr = (selector, name) => {
       const el = document.querySelector(selector);
@@ -51,11 +50,12 @@ async function run(page) {
   const pageUrl = page.url();
 
   if (isBlank(snapshot.title)) {
-    add('missing-title', 'error', 'Page is missing a non-empty <title>', pageUrl);
+    add(findings, 'missing-title', 'error', 'Page is missing a non-empty <title>', pageUrl);
   }
 
   if (snapshot.description == null) {
     add(
+      findings,
       'missing-meta-description',
       'warning',
       'Missing <meta name="description">',
@@ -63,6 +63,7 @@ async function run(page) {
     );
   } else if (isBlank(snapshot.description)) {
     add(
+      findings,
       'missing-meta-description',
       'warning',
       'Meta description is empty',
@@ -71,25 +72,26 @@ async function run(page) {
   }
 
   if (snapshot.canonical == null) {
-    add('missing-canonical', 'warning', 'Missing <link rel="canonical">', pageUrl);
+    add(findings, 'missing-canonical', 'warning', 'Missing <link rel="canonical">', pageUrl);
   } else if (isBlank(snapshot.canonical)) {
-    add('missing-canonical', 'warning', 'Canonical href is empty', pageUrl);
+    add(findings, 'missing-canonical', 'warning', 'Canonical href is empty', pageUrl);
   }
 
   // OG tags are social-preview hints, not document requirements — warnings.
   if (isBlank(snapshot.ogTitle)) {
-    add('missing-og-title', 'warning', 'Missing og:title', pageUrl);
+    add(findings, 'missing-og-title', 'warning', 'Missing og:title', pageUrl);
   }
   if (isBlank(snapshot.ogDescription)) {
-    add('missing-og-description', 'warning', 'Missing og:description', pageUrl);
+    add(findings, 'missing-og-description', 'warning', 'Missing og:description', pageUrl);
   }
   if (isBlank(snapshot.ogImage)) {
-    add('missing-og-image', 'warning', 'Missing og:image', pageUrl);
+    add(findings, 'missing-og-image', 'warning', 'Missing og:image', pageUrl);
   }
 
   for (const img of snapshot.images) {
     if (img.alt == null) {
       add(
+        findings,
         'missing-img-alt',
         'error',
         `Image is missing an alt attribute (${img.src || 'no src'})`,
@@ -99,12 +101,4 @@ async function run(page) {
   }
 }
 
-function getFindings() {
-  return findings;
-}
-
-function reset() {
-  findings.length = 0;
-}
-
-module.exports = { setup, run, getFindings, reset };
+module.exports = { setup, run };
