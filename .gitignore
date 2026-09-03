@@ -28,3 +28,6 @@ web/dist/
 
 # Logs
 *.log
+
+# Local working notes for Claude Code sessions — not shipped product
+AUDITME_DEPLOYMENT_BRIEF.md
