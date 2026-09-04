@@ -27,6 +27,8 @@ Exit code is `1` when any finding has severity `error` (usable as a CI gate).
 | `--no-headless` | Show the browser window |
 | `-q, --quiet` | Do not print the report to stdout |
 
+Navigation waits for `domcontentloaded`, not the full `load` event — full `load` blocks until every subresource finishes (ads, trackers, images), which dominates audit time on heavy sites (measured ~2x slower on a content-heavy news homepage). The functional check's HTTP-error/JS-error listeners stay attached throughout regardless, so this doesn't change what a single `page.goto()` itself can detect — it only shortens the window (bounded by how long the metadata/accessibility checks below it take) for a slow subresource to still fail before the browser closes.
+
 ## Web app usage
 
 The same `runAudit()` engine is wrapped in a small Express API, with a React (Vite) frontend to drive it from a browser instead of the CLI. Live at [auditme.onrender.com](https://auditme.onrender.com) — see the note at the top of this README on cold starts and rate limits. To run it locally instead:
