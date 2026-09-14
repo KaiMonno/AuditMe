@@ -87,6 +87,30 @@ describe('App', () => {
     expect(JSON.parse(options.body).url).toBe('http://example.com');
   });
 
+  it('sends the typed value untouched when "None" is selected', async () => {
+    const user = userEvent.setup();
+    global.fetch.mockResolvedValue(
+      jsonResponse(200, {
+        url: 'https://example.com/path?x=1',
+        auditedAt: '2026-01-01T00:00:00.000Z',
+        summary: { error: 0, warning: 0, info: 0, total: 0 },
+        findings: [],
+      })
+    );
+
+    render(<App />);
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Protocol' }), '');
+    await user.type(
+      screen.getByPlaceholderText('example.com'),
+      'https://example.com/path?x=1'
+    );
+    await user.click(screen.getByRole('button', { name: 'Run audit' }));
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+    const [, options] = global.fetch.mock.calls[0];
+    expect(JSON.parse(options.body).url).toBe('https://example.com/path?x=1');
+  });
+
   it('submits the url and browser choice to POST /api/audits', async () => {
     const user = userEvent.setup();
     global.fetch.mockResolvedValue(

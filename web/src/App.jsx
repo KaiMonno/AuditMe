@@ -1,18 +1,28 @@
 import { useState } from 'react';
 
 const BROWSERS = ['chromium', 'firefox', 'webkit'];
-const PROTOCOLS = ['https://', 'http://'];
+// value '' = "None" — send exactly what's typed, for pasting a full link.
+const PROTOCOLS = [
+  { value: 'https://', label: 'https://' },
+  { value: 'http://', label: 'http://' },
+  { value: '', label: 'None (paste a full link)' },
+];
 const HAS_EXPLICIT_PROTOCOL = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//;
 
 /**
- * Combine the protocol selector with whatever the user typed. If they
- * already typed a full URL with its own protocol (e.g. pasted
- * "http://example.com"), that's respected as-is rather than double-prefixed
- * — the selector is a convenience default, not a forced override.
+ * Combine the protocol selector with whatever the user typed.
+ *
+ * - "None" (protocol === '') sends the typed value untouched — for
+ *   pasting a full link.
+ * - Otherwise, if they typed a full URL with its own protocol anyway
+ *   (e.g. pasted "http://example.com" while https:// was still
+ *   selected), that's respected as-is rather than double-prefixed — the
+ *   selector is a convenience default, not a forced override.
+ * - Otherwise, the selected protocol is prepended.
  */
 function buildTargetUrl(protocol, typed) {
   const trimmed = typed.trim();
-  return HAS_EXPLICIT_PROTOCOL.test(trimmed) ? trimmed : protocol + trimmed;
+  return protocol === '' || HAS_EXPLICIT_PROTOCOL.test(trimmed) ? trimmed : protocol + trimmed;
 }
 
 function LogoMark() {
@@ -186,7 +196,7 @@ function FindingsTable({ findings }) {
 }
 
 export default function App() {
-  const [protocol, setProtocol] = useState(PROTOCOLS[0]);
+  const [protocol, setProtocol] = useState(PROTOCOLS[0].value);
   const [url, setUrl] = useState('');
   const [browser, setBrowser] = useState('chromium');
   const [status, setStatus] = useState('idle'); // idle | loading | error | done
@@ -244,9 +254,9 @@ export default function App() {
             disabled={loading}
             aria-label="Protocol"
           >
-            {PROTOCOLS.map((p) => (
-              <option key={p} value={p}>
-                {p}
+            {PROTOCOLS.map(({ value, label }) => (
+              <option key={value || 'none'} value={value}>
+                {label}
               </option>
             ))}
           </select>
