@@ -18,9 +18,73 @@ beforeEach(() => {
 describe('App', () => {
   it('renders the audit form', () => {
     render(<App />);
-    expect(screen.getByPlaceholderText('https://example.com')).toBeInTheDocument();
-    expect(screen.getByRole('combobox')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('example.com')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Protocol' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Browser' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Run audit' })).toBeInTheDocument();
+  });
+
+  it('defaults the protocol to https:// and prepends it when none is typed', async () => {
+    const user = userEvent.setup();
+    global.fetch.mockResolvedValue(
+      jsonResponse(200, {
+        url: 'https://cnn.com/',
+        auditedAt: '2026-01-01T00:00:00.000Z',
+        summary: { error: 0, warning: 0, info: 0, total: 0 },
+        findings: [],
+      })
+    );
+
+    render(<App />);
+    expect(screen.getByRole('combobox', { name: 'Protocol' })).toHaveValue('https://');
+    await user.type(screen.getByPlaceholderText('example.com'), 'cnn.com');
+    await user.click(screen.getByRole('button', { name: 'Run audit' }));
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+    const [, options] = global.fetch.mock.calls[0];
+    expect(JSON.parse(options.body).url).toBe('https://cnn.com');
+  });
+
+  it('uses the selected protocol when the typed value has none', async () => {
+    const user = userEvent.setup();
+    global.fetch.mockResolvedValue(
+      jsonResponse(200, {
+        url: 'http://cnn.com/',
+        auditedAt: '2026-01-01T00:00:00.000Z',
+        summary: { error: 0, warning: 0, info: 0, total: 0 },
+        findings: [],
+      })
+    );
+
+    render(<App />);
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Protocol' }), 'http://');
+    await user.type(screen.getByPlaceholderText('example.com'), 'cnn.com');
+    await user.click(screen.getByRole('button', { name: 'Run audit' }));
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+    const [, options] = global.fetch.mock.calls[0];
+    expect(JSON.parse(options.body).url).toBe('http://cnn.com');
+  });
+
+  it('respects an explicit protocol already typed, ignoring the selector', async () => {
+    const user = userEvent.setup();
+    global.fetch.mockResolvedValue(
+      jsonResponse(200, {
+        url: 'http://example.com/',
+        auditedAt: '2026-01-01T00:00:00.000Z',
+        summary: { error: 0, warning: 0, info: 0, total: 0 },
+        findings: [],
+      })
+    );
+
+    render(<App />);
+    // protocol selector is left at its https:// default
+    await user.type(screen.getByPlaceholderText('example.com'), 'http://example.com');
+    await user.click(screen.getByRole('button', { name: 'Run audit' }));
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+    const [, options] = global.fetch.mock.calls[0];
+    expect(JSON.parse(options.body).url).toBe('http://example.com');
   });
 
   it('submits the url and browser choice to POST /api/audits', async () => {
@@ -35,8 +99,8 @@ describe('App', () => {
     );
 
     render(<App />);
-    await user.type(screen.getByPlaceholderText('https://example.com'), 'https://example.com');
-    await user.selectOptions(screen.getByRole('combobox'), 'firefox');
+    await user.type(screen.getByPlaceholderText('example.com'), 'https://example.com');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Browser' }), 'firefox');
     await user.click(screen.getByRole('button', { name: 'Run audit' }));
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
@@ -59,7 +123,7 @@ describe('App', () => {
     );
 
     render(<App />);
-    await user.type(screen.getByPlaceholderText('https://example.com'), 'https://example.com');
+    await user.type(screen.getByPlaceholderText('example.com'), 'https://example.com');
     await user.click(screen.getByRole('button', { name: 'Run audit' }));
 
     expect(screen.getByRole('button', { name: 'Auditing…' })).toBeDisabled();
@@ -104,7 +168,7 @@ describe('App', () => {
     );
 
     render(<App />);
-    await user.type(screen.getByPlaceholderText('https://example.com'), 'https://example.com');
+    await user.type(screen.getByPlaceholderText('example.com'), 'https://example.com');
     await user.click(screen.getByRole('button', { name: 'Run audit' }));
 
     await waitFor(() => expect(screen.getByText('Total 3')).toBeInTheDocument());
@@ -126,7 +190,7 @@ describe('App', () => {
     );
 
     render(<App />);
-    await user.type(screen.getByPlaceholderText('https://example.com'), 'https://example.com');
+    await user.type(screen.getByPlaceholderText('example.com'), 'https://example.com');
     await user.click(screen.getByRole('button', { name: 'Run audit' }));
 
     await waitFor(() =>
@@ -139,7 +203,7 @@ describe('App', () => {
     global.fetch.mockResolvedValue(jsonResponse(400, { error: '"nope" is not a valid URL' }));
 
     render(<App />);
-    await user.type(screen.getByPlaceholderText('https://example.com'), 'nope');
+    await user.type(screen.getByPlaceholderText('example.com'), 'nope');
     await user.click(screen.getByRole('button', { name: 'Run audit' }));
 
     await waitFor(() =>
@@ -152,7 +216,7 @@ describe('App', () => {
     global.fetch.mockRejectedValue(new TypeError('Failed to fetch'));
 
     render(<App />);
-    await user.type(screen.getByPlaceholderText('https://example.com'), 'https://example.com');
+    await user.type(screen.getByPlaceholderText('example.com'), 'https://example.com');
     await user.click(screen.getByRole('button', { name: 'Run audit' }));
 
     await waitFor(() => expect(screen.getByText('Failed to fetch')).toBeInTheDocument());
@@ -181,7 +245,7 @@ describe('App', () => {
       });
 
       render(<App />);
-      await user.type(screen.getByPlaceholderText('https://example.com'), 'https://example.com');
+      await user.type(screen.getByPlaceholderText('example.com'), 'https://example.com');
       await user.click(screen.getByRole('button', { name: 'Run audit' }));
 
       return screen.findByRole('button', { name: 'Summarize with AI' });
@@ -197,7 +261,7 @@ describe('App', () => {
       });
 
       render(<App />);
-      await user.type(screen.getByPlaceholderText('https://example.com'), 'https://example.com');
+      await user.type(screen.getByPlaceholderText('example.com'), 'https://example.com');
       await user.click(screen.getByRole('button', { name: 'Run audit' }));
 
       const summarizeButton = await screen.findByRole('button', { name: 'Summarize with AI' });

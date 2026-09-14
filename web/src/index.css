@@ -143,32 +143,64 @@ header h1 {
   margin: 2rem 0;
 }
 
-.audit-form input {
+/* Protocol select + hostname input, visually merged into one field so
+   picking https:// vs http:// reads as one control, not two. */
+.url-field {
   flex: 1;
   min-width: 0;
-  padding: 0.7rem 0.9rem;
+  display: flex;
+  align-items: stretch;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
-  color: var(--text);
-  font-size: 0.95rem;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.audit-form input::placeholder {
+.url-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.url-field .protocol-select {
+  flex-shrink: 0;
+  border: none;
+  border-right: 1px solid var(--border);
+  border-radius: var(--radius) 0 0 var(--radius);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  padding: 0.7rem 0.4rem 0.7rem 0.8rem;
+  font-size: 0.95rem;
+}
+
+.url-field input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: transparent;
+  color: var(--text);
+  padding: 0.7rem 0.9rem 0.7rem 0.5rem;
+  font-size: 0.95rem;
+}
+
+.url-field input:focus-visible,
+.url-field .protocol-select:focus-visible {
+  outline: none;
+}
+
+.url-field input::placeholder {
   color: var(--text-faint);
 }
 
-.audit-form input:focus-visible,
-.audit-form select:focus-visible,
 .audit-form button:focus-visible,
+.audit-form > select:focus-visible,
 .summarize-button:focus-visible {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-.audit-form select {
+.audit-form > select {
   padding: 0.7rem 0.6rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -206,8 +238,8 @@ header h1 {
   cursor: not-allowed;
 }
 
-.audit-form input:disabled,
-.audit-form select:disabled {
+.url-field:has(:disabled),
+.audit-form > select:disabled {
   opacity: 0.6;
 }
 
@@ -215,10 +247,10 @@ header h1 {
   .audit-form {
     flex-wrap: wrap;
   }
-  .audit-form input {
+  .url-field {
     flex-basis: 100%;
   }
-  .audit-form select,
+  .audit-form > select,
   .audit-form button {
     flex: 1;
   }

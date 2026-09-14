@@ -1,6 +1,19 @@
 import { useState } from 'react';
 
 const BROWSERS = ['chromium', 'firefox', 'webkit'];
+const PROTOCOLS = ['https://', 'http://'];
+const HAS_EXPLICIT_PROTOCOL = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//;
+
+/**
+ * Combine the protocol selector with whatever the user typed. If they
+ * already typed a full URL with its own protocol (e.g. pasted
+ * "http://example.com"), that's respected as-is rather than double-prefixed
+ * — the selector is a convenience default, not a forced override.
+ */
+function buildTargetUrl(protocol, typed) {
+  const trimmed = typed.trim();
+  return HAS_EXPLICIT_PROTOCOL.test(trimmed) ? trimmed : protocol + trimmed;
+}
 
 function LogoMark() {
   return (
@@ -173,6 +186,7 @@ function FindingsTable({ findings }) {
 }
 
 export default function App() {
+  const [protocol, setProtocol] = useState(PROTOCOLS[0]);
   const [url, setUrl] = useState('');
   const [browser, setBrowser] = useState('chromium');
   const [status, setStatus] = useState('idle'); // idle | loading | error | done
@@ -189,7 +203,7 @@ export default function App() {
       const res = await fetch('/api/audits', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ url, browser }),
+        body: JSON.stringify({ url: buildTargetUrl(protocol, url), browser }),
       });
       const body = await res.json();
 
@@ -222,15 +236,35 @@ export default function App() {
       </header>
 
       <form onSubmit={handleSubmit} className="audit-form">
-        <input
-          type="text"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://example.com"
-          required
+        <div className="url-field">
+          <select
+            className="protocol-select"
+            value={protocol}
+            onChange={(e) => setProtocol(e.target.value)}
+            disabled={loading}
+            aria-label="Protocol"
+          >
+            {PROTOCOLS.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+          <input
+            type="text"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="example.com"
+            required
+            disabled={loading}
+          />
+        </div>
+        <select
+          value={browser}
+          onChange={(e) => setBrowser(e.target.value)}
           disabled={loading}
-        />
-        <select value={browser} onChange={(e) => setBrowser(e.target.value)} disabled={loading}>
+          aria-label="Browser"
+        >
           {BROWSERS.map((b) => (
             <option key={b} value={b}>
               {b}
