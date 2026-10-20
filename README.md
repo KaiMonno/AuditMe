@@ -6,6 +6,8 @@ Node.js + Playwright tool that audits a URL for functional, metadata/SEO, and ac
 
 **Live:** [auditme.onrender.com](https://auditme.onrender.com) — free-tier hosting, so it spins down after 15 minutes idle and the first request after that can take 30-60s to wake back up. Public endpoints are rate-limited (20 requests / 15 min per IP on `/api/audits` and `/api/summary`) — see [API](#api) below.
 
+The free tier's CPU allocation is small (0.15 CPU, confirmed from Render's own dashboard) — measured directly against a container resource-limited to match it: even `example.com` takes 25-32s, and a real, only moderately complex page (a Wikipedia article) didn't finish auditing within 120s. Small/simple sites audit reliably; large or complex ones may time out — that's a hosting-tier ceiling, not a bug, and audits now fail cleanly with a clear error rather than hanging or crashing the server when they hit it (see [Performance](#performance-known-limits) below).
+
 ## CLI usage
 
 ```bash
@@ -30,6 +32,12 @@ Exit code is `1` when any finding has severity `error` (usable as a CI gate).
 | `-q, --quiet` | Do not print the report to stdout |
 
 Navigation waits for `domcontentloaded`, not the full `load` event — full `load` blocks until every subresource finishes (ads, trackers, images), which dominates audit time on heavy sites (measured ~2x slower on a content-heavy news homepage). The functional check's HTTP-error/JS-error listeners stay attached throughout regardless, so this doesn't change what a single `page.goto()` itself can detect — it only shortens the window (bounded by how long the metadata/accessibility checks below it take) for a slow subresource to still fail before the browser closes.
+
+## Performance / known limits
+
+- **One audit runs at a time by default** (`MAX_CONCURRENT_AUDITS`, default `1`). Each audit launches a full browser process; on a CPU/memory-constrained host, running more than one concurrently doesn't make audits faster — measured directly: CPU stayed pegged at the same ~15% on a 0.15-CPU container regardless of how many audits ran at once, while memory climbed from a 76MB baseline to 312MB with just 3 concurrent audits (on a 512MB-limited container, that's most of the way to an OOM kill). Serializing is a pure win on a host this constrained, not a trade-off — raise it only on a host with real spare CPU/RAM.
+- **The whole audit (not just navigation) is bounded by an overall timeout** (`navigation timeout × 2`, so `60000ms` by default), after which the browser is force-closed rather than left running. `page.goto()`'s own timeout only covers navigation — a complex page can still run long in the metadata/accessibility checks that follow it, and without this bound that could hang indefinitely while holding its memory.
+- **Large or complex pages may still time out, even on a correctly-configured host.** Tested and ruled out as a fix: blocking image/font/media requests during navigation (the obvious lever for a "heavy page") made no meaningful difference — a real Wikipedia article still didn't finish auditing within 120s at 0.15 CPU even with those blocked. The bottleneck there is CPU-bound DOM/accessibility-rule evaluation, not network weight, so it isn't something this codebase can optimize away — it's a real hosting-tier ceiling. `AUDIT_NAV_TIMEOUT_MS` (see `.env.example`) lets you raise the budget on a given host; a tier with real CPU headroom is the actual fix if consistently auditing large sites matters.
 
 ## Web app usage
 

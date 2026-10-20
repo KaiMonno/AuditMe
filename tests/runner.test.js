@@ -49,4 +49,54 @@ describe('runAudit', () => {
       'expected HTTP 500 finding on the broken audit'
     );
   });
+
+  test('serializes audits so running 3 at once takes notably longer than one', async () => {
+    // Regression test for a real production incident: unbounded concurrent
+    // audits each launch a full browser process, which on a CPU/memory-
+    // constrained host causes OOM after just a few overlapping requests
+    // (measured directly: 3 concurrent audits pushed a 512MB-limited
+    // container from 76MB to 312MB in under a minute). Default
+    // MAX_CONCURRENT_AUDITS=1 means calls queue instead of overlapping —
+    // verified here by timing: if they ran concurrently, 3 at once would
+    // take about as long as 1; serialized, it should take notably longer.
+    const t0 = Date.now();
+    await runAudit(`${server.url}/ok`);
+    const oneAuditMs = Date.now() - t0;
+
+    const t1 = Date.now();
+    await Promise.all([
+      runAudit(`${server.url}/ok`),
+      runAudit(`${server.url}/ok`),
+      runAudit(`${server.url}/ok`),
+    ]);
+    const threeAuditsMs = Date.now() - t1;
+
+    assert.ok(
+      threeAuditsMs > oneAuditMs * 2,
+      `expected 3 serialized audits (${threeAuditsMs}ms) to take notably longer than ` +
+        `2x one audit (${oneAuditMs}ms) — if this fails, audits may be running concurrently again`
+    );
+  });
+
+  test('bounds the whole audit (not just navigation) with an overall timeout', async () => {
+    // page.goto()'s own timeout only bounds navigation, not the metadata/
+    // axe checks that run after it — a page complex enough to make axe
+    // run long would otherwise hang indefinitely. An artificially tiny
+    // overallTimeout against an otherwise-fast local page proves the
+    // whole-flow bound actually fires, without needing a real slow site.
+    await assert.rejects(
+      runAudit(`${server.url}/ok`, { overallTimeout: 10 }),
+      /did not complete within 10ms/
+    );
+  });
+
+  test('releases the concurrency slot and browser after a timeout', async () => {
+    // If the timeout path didn't properly close the browser and release
+    // the slot (see the `finally` block in lib/runner.js), this next call
+    // would hang forever waiting on a queue that never drains.
+    await assert.rejects(runAudit(`${server.url}/ok`, { overallTimeout: 10 }));
+
+    const result = await runAudit(`${server.url}/ok`);
+    assert.equal(result.url, `${server.url}/ok`);
+  });
 });
